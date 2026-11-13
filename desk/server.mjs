@@ -45,7 +45,7 @@ async function deliver(searchId,clubId){
     const latest=read();latest.state.searches.find(x=>x.bookingId===searchId&&x.clubId===clubId).delivery[id]=status;save(latest.state,latest.revision);
   }
 }
-const assets=new Set(['index.html','style.css','icon.svg','app.js','domain.js','playtomic.js','desk-domain.js','operations.js']);
+const assets=new Set(['index.html','style.css','icon.svg','app.js','domain.js','playtomic.js','desk-domain.js','operations.js','pdp.js','pdp-logo.js']);
 const types={html:'text/html',js:'text/javascript',css:'text/css',svg:'image/svg+xml'};
 createServer(async(req,res)=>{
  const u=new URL(req.url,'http://localhost');
