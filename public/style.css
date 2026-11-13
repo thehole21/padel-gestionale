@@ -41,18 +41,20 @@ dialog{border-radius:24px;border:1px solid #fff;box-shadow:0 35px 120px #1010303
 .open-match{padding:24px}.match-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;text-transform:capitalize;color:var(--muted)}.match-vacancy{background:#fff0da;color:#8b5a17;border-radius:9px;padding:7px 10px;font-size:11px;font-weight:650;white-space:nowrap}.match-time{font-size:39px;font-weight:700;letter-spacing:-1.8px;margin:24px 0}.match-time span{display:inline-block;font-size:20px;color:var(--muted);font-weight:400;letter-spacing:-.5px;margin-left:8px}.match-facts{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-bottom:20px;border-bottom:1px solid var(--line)}.match-facts small{display:block;color:var(--muted);font-size:11px;margin-bottom:7px}.match-facts strong{font-size:20px;font-weight:650;letter-spacing:-.5px}.match-roster{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:20px 0}.match-roster span{padding:10px;border-radius:9px;font-size:11px}.match-roster .filled{background:#f0f2f5;color:#505763}.match-roster .vacant{border:1px dashed #c6cbd0;color:#858b94}.match-actions{display:flex;gap:8px;flex-wrap:wrap}.match-actions .button{flex:1;white-space:nowrap}@media(max-width:760px){.match-time{font-size:40px}.match-facts strong{font-size:22px}.match-top{font-size:11px}}
 .brandmark:has(img[src^="data:image/jpeg"]){background:#fff}.brandmark img[src^="data:image/jpeg"]{mix-blend-mode:multiply}.brandmark:has(img){width:62px;border-radius:12px;padding:3px}
 
-.brandmark.pdp-logo,.brandmark.pdp-logo:has(img){width:126px;height:118px;min-width:126px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
-.brandmark.pdp-logo img{width:100%;height:100%;object-fit:contain;border-radius:0;mix-blend-mode:multiply}
-.pdp-brand{gap:8px;flex-wrap:wrap;justify-content:center;text-align:center}
-.pdp-brand b{font-size:29px;letter-spacing:1px}.pdp-brand small{font-size:7px;letter-spacing:.7px}
-.sidebar:has(.pdp-brand) .club-chip{margin-top:18px}
-.login-art .pdp-logo{width:220px;height:190px;min-width:220px}
-.login-art:has(.pdp-brand){background:#fff;color:#063c99;border:1px solid #e8ebf2}
-.login-art .pdp-brand{justify-content:flex-start;text-align:left;gap:22px}
-.login-art .pdp-brand b{font-size:42px}
-.login-art:has(.pdp-brand) h1 span{color:#063c9977}
-.login-art:has(.pdp-brand) .court-art{border-color:#063c9920}
-@media(max-width:760px){.login-art .pdp-logo{width:160px;height:140px;min-width:160px}.login-art .pdp-brand b{font-size:34px}}
+.brandmark.club-logo,.brandmark.club-logo:has(img){width:126px;height:118px;min-width:126px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+.brandmark.club-logo img{width:100%;height:100%;object-fit:contain;border-radius:0}
+[data-brand-club="pdp"] .club-logo img{mix-blend-mode:multiply}
+.club-brand{gap:8px;flex-wrap:wrap;justify-content:center;text-align:center}
+.club-brand b{font-size:29px;letter-spacing:1px}.club-brand small{font-size:7px;letter-spacing:.7px}
+.sidebar:has(.club-brand) .club-chip{margin-top:18px}
+.login-art .club-logo{width:220px;height:190px;min-width:220px}
+.login-art:has(.club-brand){background:#fff;color:var(--login-brand-color,#063c99);border:1px solid #e8ebf2}
+.login-art:has([data-brand-club="pro-padel"]){--login-brand-color:#263c49}
+.login-art .club-brand{justify-content:flex-start;text-align:left;gap:22px}
+.login-art .club-brand b{font-size:42px}
+.login-art:has(.club-brand) h1 span{color:color-mix(in srgb,var(--login-brand-color,#063c99) 47%,transparent)}
+.login-art:has(.club-brand) .court-art{border-color:color-mix(in srgb,var(--login-brand-color,#063c99) 12.5%,transparent)}
+@media(max-width:760px){.login-art .club-logo{width:160px;height:140px;min-width:160px}.login-art .club-brand b{font-size:34px}}
 
 /* Barra laterale: logo proporzionato e navigazione sempre raggiungibile. */
 .sidebar{
@@ -66,7 +68,7 @@ dialog{border-radius:24px;border:1px solid #fff;box-shadow:0 35px 120px #1010303
 .sidebar>*{flex-shrink:0}
 .sidebar::-webkit-scrollbar{width:5px}
 .sidebar::-webkit-scrollbar-thumb{background:#aeb7c277;border-radius:8px}
-.sidebar .pdp-brand{
+.sidebar .club-brand{
  display:flex;
  flex-direction:column;
  flex-wrap:nowrap;
@@ -75,43 +77,34 @@ dialog{border-radius:24px;border:1px solid #fff;box-shadow:0 35px 120px #1010303
  padding:0 4px;
  text-align:center;
 }
-.sidebar .brandmark.pdp-logo,
-.sidebar .brandmark.pdp-logo:has(img){
+.sidebar .brandmark.club-logo,
+.sidebar .brandmark.club-logo:has(img){
  width:130px;
  min-width:0;
  max-width:100%;
  height:112px;
  flex-shrink:0;
 }
-.sidebar .pdp-brand>div{min-width:0;width:100%}
-.sidebar .pdp-brand b{font-size:23px;line-height:1.2;letter-spacing:1px}
-.sidebar .pdp-brand small{font-size:7px;line-height:1.5;margin-top:3px;letter-spacing:.6px}
-.sidebar:has(.pdp-brand) .club-chip{margin-top:16px;margin-bottom:12px}
+.sidebar .club-brand>div{min-width:0;width:100%}
+.sidebar .club-brand b{font-size:23px;line-height:1.2;letter-spacing:1px}
+.sidebar .club-brand small{font-size:7px;line-height:1.5;margin-top:3px;letter-spacing:.6px}
+.sidebar:has(.club-brand) .club-chip{margin-top:16px;margin-bottom:12px}
 .sidebar-bottom{flex-shrink:0;margin-top:auto}
 .shell{min-width:0}
 .workspace,.settings-grid,.grid-two,.stats,.cards{min-width:0}
 .workspace>*,.settings-grid>*,.grid-two>*,.stats>*,.cards>*{min-width:0}
-.login-art .pdp-brand{flex-wrap:nowrap;min-width:0}
-.login-art .pdp-brand>div{min-width:0}
-.login-art .brandmark.pdp-logo{flex-shrink:1}
+.login-art .club-brand{flex-wrap:nowrap;min-width:0}
+.login-art .club-brand>div{min-width:0}
+.login-art .brandmark.club-logo{flex-shrink:1}
 @media(max-height:800px){
  .sidebar{padding-top:18px;padding-bottom:18px}
- .sidebar .brandmark.pdp-logo,.sidebar .brandmark.pdp-logo:has(img){height:90px;width:112px}
+ .sidebar .brandmark.club-logo,.sidebar .brandmark.club-logo:has(img){height:90px;width:112px}
  .sidebar .club-chip{padding:10px}
  .sidebar .nav button{padding-top:10px;padding-bottom:10px}
  .sidebar-bottom{padding-top:18px}
 }
 @media(max-width:760px){
  .sidebar{max-height:calc(100dvh - 20px)}
- .login-art .pdp-brand{gap:14px}
- .login-art .brandmark.pdp-logo{min-width:0;width:145px;height:125px}
-}
-
-.brandmark:has(img[src="./pro-padel-logo.png"]) {
-  width: 112px;
-  height: 72px;
-  flex-shrink: 0;
-  padding: 0;
-  background: transparent;
-  box-shadow: none;
+ .login-art .club-brand{gap:14px}
+ .login-art .brandmark.club-logo{min-width:0;width:145px;height:125px}
 }
