@@ -4,6 +4,7 @@ import {createServer} from 'node:http';
 import {createHmac,timingSafeEqual} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {createSeed,today,addBooking} from '../public/domain.js';
+import {ensureProPadel} from '../public/pro-padel.js';
 import {DemoPlaytomicAdapter} from '../public/playtomic.js';
 import {account} from '../public/desk-domain.js';
 
@@ -11,7 +12,12 @@ const env=process.env;
 const db=new DatabaseSync(env.DESK_DB||'desk.sqlite');
 db.exec('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS workspace(id INTEGER PRIMARY KEY,revision INTEGER NOT NULL, payload TEXT NOT NULL)');
 db.prepare('INSERT OR IGNORE INTO workspace VALUES(1,0,?)').run(JSON.stringify(createSeed()));
-const read=()=>{const r=db.prepare('SELECT revision,payload FROM workspace WHERE id=1').get();return {revision:r.revision,state:JSON.parse(r.payload)}};
+const read=()=>{
+  const row=db.prepare('SELECT revision,payload FROM workspace WHERE id=1').get();
+  const state=JSON.parse(row.payload);
+  ensureProPadel(state);
+  return {revision:row.revision,state};
+};
 function save(state,revision){
   const updated=db.prepare('UPDATE workspace SET payload=?,revision=revision+1 WHERE id=1 AND revision=?').run(JSON.stringify(state),revision);
   if(!updated.changes)throw Object.assign(Error('Dati aggiornati da un’altra postazione. Ricarica e ripeti.'),{status:409});
@@ -45,7 +51,7 @@ async function deliver(searchId,clubId){
     const latest=read();latest.state.searches.find(x=>x.bookingId===searchId&&x.clubId===clubId).delivery[id]=status;save(latest.state,latest.revision);
   }
 }
-const assets=new Set(['index.html','style.css','icon.svg','app.js','domain.js','playtomic.js','desk-domain.js','operations.js','pdp.js','pdp-logo.js']);
+const assets=new Set(['index.html','style.css','icon.svg','app.js','domain.js','playtomic.js','desk-domain.js','operations.js','pdp.js','pdp-logo.js','pro-padel.js','pro-padel-logo.png']);
 const types={html:'text/html',js:'text/javascript',css:'text/css',svg:'image/svg+xml'};
 createServer(async(req,res)=>{
  const u=new URL(req.url,'http://localhost');
@@ -73,7 +79,7 @@ createServer(async(req,res)=>{
   if(u.pathname!=='/webhook'&&!principal){res.writeHead(401,{'WWW-Authenticate':'Basic realm="PadelDesk"'});return res.end()}
   const scoped=()=>{const data=read();if(principal.role!=='owner'){for(const [key,value] of Object.entries(data.state))if(Array.isArray(value))data.state[key]=value.filter(x=>(key==='clubs'?x.id:x.clubId)===principal.clubId)}return {...data,live,role:principal.role}};
   if(req.method==='GET'&&u.pathname==='/api/desk')return json(200,scoped());
-  if(req.method==='GET'){const name=u.pathname==='/'?'index.html':u.pathname.slice(1);if(!assets.has(name))return json(404,{});const body=await readFile(new URL('../public/'+name,import.meta.url));res.writeHead(200,{'Content-Type':types[name.split('.').pop()]+'; charset=utf-8'});return res.end(body)}
+  if(req.method==='GET'){const name=u.pathname==='/'?'index.html':u.pathname.slice(1);if(!assets.has(name))return json(404,{});const body=await readFile(new URL('../public/'+name,import.meta.url));res.writeHead(200,{'Content-Type':name.endsWith('.png')?'image/png':types[name.split('.').pop()]+'; charset=utf-8'});return res.end(body)}
   if(req.method!=='POST')return json(405,{});
   const chunks=[];let length=0;for await(const chunk of req){length+=chunk.length;if(length>12000000)return json(413,{});chunks.push(chunk)}const raw=Buffer.concat(chunks);
   if(u.pathname==='/webhook'){
