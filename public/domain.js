@@ -1,4 +1,5 @@
 import {ensurePdp} from './pdp.js';
+import {ensureProPadel} from './pro-padel.js';
 export const uid = () => globalThis.crypto.randomUUID();
 export function today() { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Rome' }).format(new Date()); }
 export function shiftDate(date, days) { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0,10); }
@@ -30,7 +31,10 @@ export function createSeed() {
   const specs=[['a1','09:00',90,4,'lesson'],['a2','10:00',90,4,'match'],['a3','11:00',90,3,'match'],['a1','13:00',90,4,'match'],['a2','14:00',90,2,'match'],['a4','15:30',90,4,'match'],['a1','16:30',90,3,'match'],['a2','17:00',90,4,'match'],['a3','18:00',90,2,'match'],['a4','18:00',90,4,'match'],['a1','19:00',90,4,'match'],['a2','20:00',90,3,'match'],['a3','20:30',90,4,'match'],['a4','21:00',90,4,'match']];
   const bookings=specs.map(([courtId,start,duration,count,kind],i)=>({id:`b${i}`,clubId:'aurora',courtId,date,start,duration,kind,title:kind==='lesson'?'Lezione con Martina':'Partita amichevole',price:60,status:'confirmed',level:'3.0 – 4.0',notes:'',source:i%3?'club':'playtomic',externalId:i%3?null:`demo-ext-${i}`,sync:i%3?'local':'demo-imported',players:Array.from({length:count},(_,j)=>({name:members[(i+j)%members.length].name,amount:15,paid:i%3===0||j===0,method:i%3===0?'online':'club'}))}));
   for(const c of clubs){c.courts.forEach((court,index)=>court.name='Campo '+(index+1));while(c.courts.length<6)c.courts.push({id:c.id+'-court-'+(c.courts.length+1),name:'Campo '+(c.courts.length+1),type:''});}
-  const result={version:1,clubs,members,bookings,expenses:[],events:[{id:'ev1',clubId:'aurora',title:'Americano del venerdì',date:shiftDate(date,7),time:'19:00',capacity:16,participants:[],fee:25}],staff:[{id:'s1',clubId:'aurora',name:'Martina De Luca',role:'Maestro',phone:'+39 333 000 2000'}],queue:[]};ensurePdp(result);return result;
+  const result={version:1,clubs,members,bookings,expenses:[],events:[{id:'ev1',clubId:'aurora',title:'Americano del venerdì',date:shiftDate(date,7),time:'19:00',capacity:16,participants:[],fee:25}],staff:[{id:'s1',clubId:'aurora',name:'Martina De Luca',role:'Maestro',phone:'+39 333 000 2000'}],queue:[]};
+  ensurePdp(result);
+  ensureProPadel(result);
+  return result;
 }
 export function addBooking(state, booking) {
   const club=state.clubs.find(c=>c.id===booking.clubId);
