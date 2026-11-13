@@ -55,6 +55,21 @@ createServer(async(req,res)=>{
   const users=JSON.parse(env.DESK_USERS||'[]');
   if(env.DESK_PASSWORD)users.push({username:'desk',password:env.DESK_PASSWORD,role:'owner'});
   const principal=users.length?users.find(user=>user.password&&req.headers.authorization==='Basic '+Buffer.from(user.username+':'+user.password).toString('base64')):{role:'owner'};
+  if(u.pathname.startsWith('/api/tournaments/')){
+    const token=decodeURIComponent(u.pathname.split('/').pop()),data=read(),event=data.state.events.find(e=>e.token===token);
+    if(!event)return json(404,{error:'Torneo non trovato'});
+    if(req.method==='GET'){const club=data.state.clubs.find(c=>c.id===event.clubId);return json(200,{title:event.title,description:event.description,date:event.date,time:event.time,fee:event.fee,prize:event.prize,capacity:event.capacity,count:event.participants.length,club:{primary:club.primary,accent:club.accent,canvas:club.canvas}})}
+    if(req.method!=='POST')return json(405,{});
+    if(!req.headers['content-type']?.startsWith('application/json'))return json(415,{});
+    let body='';for await(const chunk of req){body+=chunk;if(body.length>4000)return json(413,{})}
+    const input=JSON.parse(body),name=String(input.name||'').trim(),phone=String(input.phone||'').replace(/\D/g,'');
+    if(!name||name.length>160||phone.length<8||phone.length>15||!input.consent)return json(400,{error:'Controlla nome, telefono e consenso'});
+    event.registrations||=[];
+    if(event.registrations.some(r=>r.phone===phone))return json(409,{error:'Numero già iscritto'});
+    if(event.participants.length>=event.capacity)return json(409,{error:'Torneo completo'});
+    event.participants.push(name);event.registrations.push({name,phone,created:new Date().toISOString()});
+    save(data.state,data.revision);return json(200,{ok:true});
+  }
   if(u.pathname!=='/webhook'&&!principal){res.writeHead(401,{'WWW-Authenticate':'Basic realm="PadelDesk"'});return res.end()}
   const scoped=()=>{const data=read();if(principal.role!=='owner'){for(const [key,value] of Object.entries(data.state))if(Array.isArray(value))data.state[key]=value.filter(x=>(key==='clubs'?x.id:x.clubId)===principal.clubId)}return {...data,live,role:principal.role}};
   if(req.method==='GET'&&u.pathname==='/api/desk')return json(200,scoped());
