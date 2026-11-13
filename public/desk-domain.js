@@ -1,7 +1,7 @@
 export function account(state, clubId, player) {
   const people = state.members.filter(m => m.clubId === clubId);
   let member = people.find(m => m.id === player.memberId || (player.externalId && m.externalId === player.externalId));
-  if (!member) {
+  if (!member && !player.externalId && !player.memberId) {
     const matches = people.filter(m => m.name.trim().toLocaleLowerCase() === player.name.trim().toLocaleLowerCase());
     if (matches.length === 1) member = matches[0];
   }

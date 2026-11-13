@@ -1,3 +1,4 @@
+import {importReservation,deskAction} from '../public/operations.js';
 import {DatabaseSync} from 'node:sqlite';
 import {createServer} from 'node:http';
 import {createHmac,timingSafeEqual} from 'node:crypto';
@@ -21,10 +22,7 @@ async function sync(){
   for(const club of state.clubs){
     const incoming=await new DemoPlaytomicAdapter().listBookings(club.id,today());
     for(const booking of incoming){
-      if(state.bookings.some(b=>b.clubId===club.id&&b.externalId===booking.externalId))continue;
-      booking.courtId=club.courts[0]?.id;
-      try{addBooking(state,booking)}catch{continue}
-      booking.players.forEach(p=>account(state,club.id,p));changed=true;
+      const before=JSON.stringify(state);importReservation(state,club,booking);changed ||= before!==JSON.stringify(state);
     }
   }
   if(changed)save(state,revision);
@@ -47,15 +45,19 @@ async function deliver(searchId,clubId){
     const latest=read();latest.state.searches.find(x=>x.bookingId===searchId&&x.clubId===clubId).delivery[id]=status;save(latest.state,latest.revision);
   }
 }
-const assets=new Set(['index.html','style.css','icon.svg','app.js','domain.js','playtomic.js','desk-domain.js']);
+const assets=new Set(['index.html','style.css','icon.svg','app.js','domain.js','playtomic.js','desk-domain.js','operations.js']);
 const types={html:'text/html',js:'text/javascript',css:'text/css',svg:'image/svg+xml'};
 createServer(async(req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data))};
  try{
   if(u.pathname==='/webhook'&&req.method==='GET'){if(!env.WA_VERIFY||env.WA_VERIFY!==u.searchParams.get('hub.verify_token'))return json(403,{});return res.end(u.searchParams.get('hub.challenge'))}
-  if(u.pathname!=='/webhook'&&env.DESK_PASSWORD&&req.headers.authorization!=='Basic '+Buffer.from('desk:'+env.DESK_PASSWORD).toString('base64')){res.writeHead(401,{'WWW-Authenticate':'Basic realm="PadelDesk"'});return res.end()}
-  if(req.method==='GET'&&u.pathname==='/api/desk'){return json(200,{...read(),live})}
+  const users=JSON.parse(env.DESK_USERS||'[]');
+  if(env.DESK_PASSWORD)users.push({username:'desk',password:env.DESK_PASSWORD,role:'owner'});
+  const principal=users.length?users.find(user=>user.password&&req.headers.authorization==='Basic '+Buffer.from(user.username+':'+user.password).toString('base64')):{role:'owner'};
+  if(u.pathname!=='/webhook'&&!principal){res.writeHead(401,{'WWW-Authenticate':'Basic realm="PadelDesk"'});return res.end()}
+  const scoped=()=>{const data=read();if(principal.role!=='owner'){for(const [key,value] of Object.entries(data.state))if(Array.isArray(value))data.state[key]=value.filter(x=>(key==='clubs'?x.id:x.clubId)===principal.clubId)}return {...data,live,role:principal.role}};
+  if(req.method==='GET'&&u.pathname==='/api/desk')return json(200,scoped());
   if(req.method==='GET'){const name=u.pathname==='/'?'index.html':u.pathname.slice(1);if(!assets.has(name))return json(404,{});const body=await readFile(new URL('../public/'+name,import.meta.url));res.writeHead(200,{'Content-Type':types[name.split('.').pop()]+'; charset=utf-8'});return res.end(body)}
   if(req.method!=='POST')return json(405,{});
   const chunks=[];let length=0;for await(const chunk of req){length+=chunk.length;if(length>12000000)return json(413,{});chunks.push(chunk)}const raw=Buffer.concat(chunks);
@@ -72,8 +74,29 @@ createServer(async(req,res)=>{
   }
   if(!req.headers['content-type']?.startsWith('application/json'))return json(415,{});
   const p=JSON.parse(raw);
-  if(u.pathname==='/api/desk'){return json(200,{revision:save(p.state,p.revision)})}
-  if(u.pathname==='/api/invites'){await deliver(p.bookingId,p.clubId);return json(200,read())}
+  if(u.pathname.startsWith('/api/action/')){
+    if(principal.role!=='owner'&&principal.clubId!==p.clubId)return json(403,{});
+    const data=read();if(data.revision!==p.revision)return json(409,{error:'Aggiorna la pagina: dati modificati'});
+    const op=u.pathname.slice('/api/action/'.length);deskAction(data.state,p.clubId,op,p,live);save(data.state,data.revision);
+    if(op==='search')await deliver(p.bookingId,p.clubId);return json(200,scoped());
+  }
+  if(u.pathname==='/api/desk'){
+    const data=read();if(data.revision!==p.revision)return json(409,{});
+    for(const key of ['clubs','members','bookings','events','staff','expenses']){
+      if(key==='clubs'&&principal.role!=='owner')continue;
+      const incoming=p.state[key];if(!Array.isArray(incoming))throw Error('Formato non valido');
+      for(const x of incoming){
+        const tenant=key==='clubs'?x.id:x.clubId,old=data.state[key].find(y=>y.id===x.id);
+        if(principal.role!=='owner'&&(tenant!==principal.clubId||(old&&(key==='clubs'?old.id:old.clubId)!==principal.clubId)))return json(403,{});
+        if(key==='members')x.balance=old?.balance||0;
+        if(key==='bookings'&&old?.source==='playtomic'){Object.assign(x,old);continue}
+        if(key==='bookings')for(const player of x.players){const prior=old?.players.find(y=>y.memberId&&y.memberId===player.memberId||y.name===player.name);Object.assign(player,{paid:prior?.paid||false,deskMethod:prior?.deskMethod});}
+        if(old)Object.assign(old,x);else data.state[key].push(x);
+      }
+    }
+    return json(200,{revision:save(data.state,data.revision)})
+  }
+  
   json(404,{});
  }catch(e){json(e.status||400,{error:e.message})}
-}).listen(Number(env.PORT||3100),env.DESK_PASSWORD?'0.0.0.0':'127.0.0.1');
+}).listen(Number(env.PORT||3100),(env.DESK_PASSWORD||env.DESK_USERS)?'0.0.0.0':'127.0.0.1');
