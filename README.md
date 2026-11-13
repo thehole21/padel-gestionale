@@ -34,38 +34,8 @@ La build produce `dist/`, adatta a hosting statico. `vercel.json` contiene la co
 
 I dati sono salvati esclusivamente in `localStorage` sul browser in uso, con chiave `padel-club-os:v1`. La sessione demo è in `sessionStorage`. Non c'è database condiviso, autenticazione, isolamento di sicurezza, controllo concorrenza fra postazioni o invio di notifiche. Il proprietario e la reception sono ruoli dimostrativi selezionabili liberamente. Non inserire dati personali reali, credenziali o dati di carte. La pulizia dei dati del browser rimuove il salvataggio; l'esportazione JSON è un backup leggibile, il ripristino non è ancora implementato.
 
-## Playtomic predisposto, senza API reali
+## Desk integrato
 
-`public/playtomic.js` contiene un contratto **interno**, non una descrizione di endpoint ufficiali:
+La scheda prenotazione e la cassa condividono le quote. In Giocatori e soci → Conto e preferenze si gestiscono credito in euro, insoluti, fascia oraria e consenso WhatsApp. In Partite aperte → Trova sostituto si filtrano e invitano i soci del circolo. Playtomic è in sola lettura.
 
-```js
-class PlaytomicAdapter {
-  async listBookings(clubId, date) {}
-  async upsertBooking(booking, idempotencyKey) {}
-  async cancelBooking(externalId, idempotencyKey) {}
-}
-```
-
-`DemoPlaytomicAdapter` non effettua richieste di rete. Il pannello può importare una prenotazione fittizia ripetibile alle 08:00 del primo campo. L'ID esterno stabile evita duplicati. Anche l'importazione verifica sovrapposizioni. Creazioni/modifiche e cancellazioni possono essere messe in coda; l'esecuzione è manuale e produce esclusivamente esiti `demo-*`. Ogni job ha circolo, ID stabile, tentativi ed errore; i retry riutilizzano la stessa chiave. I job non ancora eseguiti vengono sostituiti dall'ultima modifica. Non è un worker di produzione.
-
-Nessuna garanzia sulla disponibilità di operazioni Playtomic: accesso partner, autorizzazioni, modello dati, vincoli di pagamento e supporto a scrittura/cancellazione devono essere verificati sul contratto ufficiale prima dell'integrazione. Non sono stati inventati endpoint né utilizzate API non ufficiali.
-
-## Passaggi necessari prima della vendita
-
-1. Backend e database condiviso: tenant su tutte le entità, isolamento verificato sul server, gestione timezone e importi in centesimi.
-2. Accessi reali: proprietario globale, amministratore circolo, reception e maestro; autorizzazioni server, recupero password e audit degli accessi.
-3. Prenotazioni transazionali: vincolo sulle sovrapposizioni, concorrenza, cancellazioni e audit; nessuna fiducia nel `clubId` passato dal browser.
-4. Pagamenti reali e registro eventi immutabile, separando metodo, stato, data di incasso e fonte. Un importo dichiarato online dalla demo non è una verifica bancaria.
-5. Playtomic solo dal backend: segreti protetti, mapping campi esterni, import incrementale, idempotenza persistente, webhook verificati se previsti dal partner, retry con backoff e riconciliazione dei conflitti.
-6. Upload protetti e storage persistente per loghi/documenti; backup e ripristino; policy privacy, conservazione dati e consensi.
-7. Verifica dei flussi con utenti del circolo e test di sicurezza prima di accogliere dati reali.
-
-## Struttura
-
-- `public/app.js`: interfaccia e flussi dimostrativi.
-- `public/domain.js`: prenotazioni, validazioni, totali e dati di esempio.
-- `public/playtomic.js`: contratto adapter e coda demo.
-- `public/style.css`: design responsive, tema per circolo e movimento ridotto.
-- `tests/domain.test.mjs`: collisioni, confini del circolo, pagamenti e sincronizzazione.
-
-I font Google sono opzionali: in assenza di connessione si usano i font di sistema.
+La demo statica su Vercel conserva i dati nel browser e simula le risposte. Con Node 24, npm run start:desk serve la stessa interfaccia con SQLite, import periodico e webhook WhatsApp. Vedere desk/README.md.
