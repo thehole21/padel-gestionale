@@ -1,5 +1,6 @@
 import {addBooking,today} from './domain.js';
 import {account,record,candidates} from './desk-domain.js';
+import {inventoryAction,prepareExtras} from './inventory.js';
 
 export function importReservation(state,club,incoming){
   if(incoming.clubId!==club.id || !incoming.externalId)throw Error('Prenotazione senza identità del circolo');
@@ -17,6 +18,10 @@ export function importReservation(state,club,incoming){
 export function deskAction(state,clubId,operation,p,live=false){
   const club=state.clubs.find(c=>c.id===clubId);
   if(!club)throw Error('Circolo non disponibile');
+  if (['inventory-stock','inventory-racket','inventory-return'].includes(operation)) {
+    inventoryAction(state, clubId, operation, p);
+    return;
+  }
   const shifts=state.shifts||=[];let shift=shifts.find(s=>s.clubId===clubId&&!s.closed);
   if(operation==='open'){if(shift)throw Error('Turno già aperto');shifts.push({id:crypto.randomUUID(),clubId,opened:new Date().toISOString()});return;}
   if(operation==='close'){if(!shift)throw Error('Nessun turno aperto');shift.closed=new Date().toISOString();return;}
@@ -37,7 +42,25 @@ export function deskAction(state,clubId,operation,p,live=false){
   if(!shift)throw Error('Apri un turno in Cassa e pagamenti');
   if(operation==='payment'){
     const player=booking?.players[p.index];if(!player)throw Error('Quota non trovata');
-    record(state,booking,player,p.method,today());state.ledger.at(-1).shiftId=shift.id;return;
+    if (p.transactionId !== undefined && (typeof p.transactionId !== 'string' || !p.transactionId || p.transactionId.length > 128)) {
+      throw Error('Identificativo del pagamento non valido.');
+    }
+    if (p.transactionId && state.ledger?.some(t => t.clubId === clubId && t.id === p.transactionId)) return;
+    const quota = player.paid ? 0 : Math.round(player.amount * 100);
+    if ((p.quotaCents !== undefined && p.quotaCents !== quota) ||
+        (p.playerName !== undefined && p.playerName !== player.name) ||
+        (p.externalId !== undefined && p.externalId !== (player.externalId || null))) {
+      throw Error('La quota o il giocatore sono cambiati. Riapri il pagamento.');
+    }
+    const {inventory,racket,tubes,lines} = prepareExtras(state, clubId, p);
+    const movement = record(state, booking, player, p.method, today(), {lines, transactionId:p.transactionId});
+    movement.shiftId = shift.id;
+    inventory.tubes -= tubes;
+    if (racket) {
+      racket.rental = {transactionId:movement.id, memberId:movement.memberId,
+        playerName:player.name, date:movement.date};
+    }
+    return;
   }
   if(operation==='topup'){
     const m=state.members.find(x=>x.clubId===clubId&&x.id===p.memberId);
