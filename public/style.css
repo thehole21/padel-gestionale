@@ -108,3 +108,5 @@ dialog{border-radius:24px;border:1px solid #fff;box-shadow:0 35px 120px #1010303
  .login-art .club-brand{gap:14px}
  .login-art .brandmark.club-logo{min-width:0;width:145px;height:125px}
 }
+
+#generic-form [hidden] { display: none; }
