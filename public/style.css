@@ -110,3 +110,12 @@ dialog{border-radius:24px;border:1px solid #fff;box-shadow:0 35px 120px #1010303
 }
 
 #generic-form [hidden] { display: none; }
+
+.cash-daily-summary { margin-bottom:20px; }
+.cash-shift-end {
+  max-width:720px;
+  margin:24px auto 0;
+  text-align:center;
+}
+.cash-shift-end .actions { justify-content:center; }
+.button.cash-close { background:#ad302e; color:#fff; }
